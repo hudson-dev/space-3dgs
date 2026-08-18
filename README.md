@@ -211,7 +211,9 @@ space-3dgs-viewer outputs/iss_jem --watch               # follow training: hot-s
   --load-config …` or train with `--vis viewer`; both are viser-based too but
   render on the GPU, and `ns-viewer` loads the whole dataset first.
 - `--max-gaussians N` (keeps the most opaque) and `--min-opacity` lighten very
-  large splats for the browser; `--data` / `--run` name the dataset and run
+  large splats for the browser; `--max-cameras` (default 400, evenly strided)
+  / `--no-cameras` and the **Frustum size** dropdown keep the frustums from
+  hiding the splat; `--data` / `--run` name the dataset and run
   explicitly when they aren't found next to a `.ply`; `--port`, `--share` as
   usual. `space-3dgs-viewer --help` lists the rest.
 

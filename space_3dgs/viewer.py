@@ -48,6 +48,7 @@ SH_C0 = 0.28209479177387814
 MIN_SCALE = 1e-4  # floor on Gaussian scale (scene units) so covariances stay positive definite
 LEGACY_APPLIED_TRANSFORM = np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, -1, 0]], dtype=np.float64)
 MEAN_APPEARANCE = "mean (viewer default)"
+FRUSTUM_SIZES = {"0.25×": 0.25, "0.5×": 0.5, "1×": 1.0, "2×": 2.0, "4×": 4.0}
 UP_AXES = {"+z": (0, 0, 1), "-z": (0, 0, -1), "+y": (0, 1, 0), "-y": (0, -1, 0), "+x": (1, 0, 0), "-x": (-1, 0, 0)}
 _UNSET = object()
 PALETTE = [  # one colour per capture sequence (matplotlib tab10)
@@ -573,7 +574,7 @@ class Viewer:
             self.btn_reload = gui.add_button("Reload now", icon=None)
         with gui.add_folder("Cameras & points", expand_by_default=True):
             self.cb_cameras = gui.add_checkbox("Show training cameras", not self.args.no_cameras)
-            self.dd_frustum = gui.add_dropdown("Frustum size", ["0.5×", "1×", "2×", "4×"], "1×")
+            self.dd_frustum = gui.add_dropdown("Frustum size", list(FRUSTUM_SIZES), "1×")
             self.cb_points = gui.add_checkbox("Show SfM seed cloud", False, hint="points3d.ply of the dataset")
             self.sl_point_size = gui.add_slider("Point size", 0.001, 0.05, 0.001, 0.004)
             self.seq_folder = gui.add_folder("Sequences", expand_by_default=False)
@@ -788,8 +789,8 @@ class Viewer:
         base = self.args.frustum_scale
         if base <= 0 and d is not None:
             centres = d.c2w[:, :3, 3]
-            base = 0.02 * float(np.linalg.norm(centres.max(0) - centres.min(0))) or 0.05
-        return base * {"0.5×": 0.5, "1×": 1.0, "2×": 2.0, "4×": 4.0}[self.dd_frustum.value]
+            base = 0.01 * float(np.linalg.norm(centres.max(0) - centres.min(0))) or 0.05
+        return base * FRUSTUM_SIZES[self.dd_frustum.value]
 
     def _draw_cameras(self) -> None:
         import viser.transforms as vtf
@@ -943,10 +944,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--max-gaussians", type=int, default=0,
                     help="cap the number of Gaussians sent to the browser, keeping the most opaque (0 = all)")
     ap.add_argument("--min-opacity", type=float, default=0.0, help="drop Gaussians below this opacity")
-    ap.add_argument("--max-cameras", type=int, default=1000,
+    ap.add_argument("--max-cameras", type=int, default=400,
                     help="draw at most this many training frustums (evenly strided; 0 = all)")
     ap.add_argument("--frustum-scale", type=float, default=0.0,
-                    help="frustum size in scene units (0 = 2%% of the camera bounding-box diagonal)")
+                    help="frustum size in scene units (0 = 1%% of the camera bounding-box diagonal)")
     ap.add_argument("--no-cameras", action="store_true", help="start with the camera frustums hidden")
     ap.add_argument("--up", choices=list(UP_AXES), default="+z",
                     help="world up axis; nerfstudio's frame is +z up, write --up=-z (with '=') if the model "
