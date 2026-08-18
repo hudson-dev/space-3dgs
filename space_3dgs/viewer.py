@@ -392,6 +392,7 @@ class Dataset:
     ply_path: Optional[Path]
     frame: Optional[DataparserFrame]
     total: int
+    image_size: Tuple[int, int] = (0, 0)  # (w, h) of the first frame
 
     _points: Optional[Tuple[np.ndarray, np.ndarray]] = field(default=None, repr=False)
 
@@ -444,7 +445,9 @@ def load_dataset(data: Path, run_dir: Optional[Path], max_cameras: int) -> Datas
         names = [names[i] for i in keep]
     ply_rel = meta.get("ply_file_path")
     ply_path = (data_dir / ply_rel) if ply_rel else (data_dir / "points3d.ply")
-    return Dataset(c2w, fov_y, aspect, names, seq, seq_names, ply_path if ply_path.exists() else None, frame, total)
+    image_size = (int(intr(frames[0], "w")), int(intr(frames[0], "h"))) if frames else (0, 0)
+    return Dataset(c2w, fov_y, aspect, names, seq, seq_names, ply_path if ply_path.exists() else None, frame, total,
+                   image_size)
 
 
 # --------------------------------------------------------------------------- source resolution
@@ -548,6 +551,7 @@ class Viewer:
         self.splat_handle = None
         self._splat_gen = 0
         self._applied_appearance = MEAN_APPEARANCE  # dropdown value baked into the uploaded colours
+        self._render_size_touched = False  # user edited Width/Height (don't overwrite with the dataset size)
         self.dataset: Optional[Dataset] = None
         self.dataset_key: object = _UNSET  # what the dataset / run_cfg were last read for (see _dataset_key)
         self.frustums: List = []
@@ -583,6 +587,15 @@ class Viewer:
             self.sl_point_size = gui.add_slider("Point size", 0.001, 0.05, 0.001, 0.004)
             self.seq_folder = gui.add_folder("Sequences", expand_by_default=False)
             self.seq_checkboxes: Dict[int, object] = {}
+        with gui.add_folder("Render", expand_by_default=False):
+            self.num_render_w = gui.add_number("Width", 1280, min=16, max=8192, step=16,
+                                               hint="Render size in pixels (defaults to the training image size)")
+            self.num_render_h = gui.add_number("Height", 720, min=16, max=8192, step=16)
+            self.btn_render = gui.add_button(
+                "Render image (PNG)",
+                hint="Render the current view at Width × Height and download it. Detail beyond the "
+                     "browser canvas is upsampled; the aspect ratio is honoured by cropping.",
+            )
         with gui.add_folder("View"):
             self.btn_home = gui.add_button("Reset view")
             self.btn_up = gui.add_button(
@@ -602,6 +615,9 @@ class Viewer:
         self.cb_points.on_update(lambda _: self._draw_points())
         self.sl_point_size.on_update(lambda _: self._draw_points())
         self.btn_home.on_click(lambda ev: self._go_home(ev.client))
+        self.btn_render.on_click(lambda ev: self._render_image(ev.client))
+        for handle in (self.num_render_w, self.num_render_h):
+            handle.on_update(lambda ev: setattr(self, "_render_size_touched", True) if ev.client is not None else None)
         self.btn_up.on_click(lambda ev: self._reset_up_from_view(ev.client))
         self.dd_up.on_update(lambda _: self._set_up_axis(UP_AXES[self.dd_up.value]))
 
@@ -801,6 +817,8 @@ class Viewer:
             log(f"no dataparser_transforms.json in {run_dir}: cameras drawn in the dataset frame, "
                 "which only matches the splat if the dataparser applied no transform")
         log(f"dataset {data}: {d.total:,} cameras ({len(d.names):,} drawn), sequences {d.sequence_names}")
+        if d.image_size[0] > 0 and not self._render_size_touched:
+            self.num_render_w.value, self.num_render_h.value = d.image_size
         # per-sequence toggles
         with self.seq_folder:
             for i, (name, label) in enumerate(zip(d.sequence_names, self._sequence_labels())):
@@ -932,6 +950,28 @@ class Viewer:
         up = vtf.SO3(np.asarray(client.camera.wxyz)) @ np.array([0.0, -1.0, 0.0])
         self.up = np.asarray(up, dtype=float)
         client.camera.up_direction = tuple(self.up)
+
+    # ---- render
+
+    def _render_image(self, client) -> None:
+        """Render the clicking client's current view at the chosen size and send it as a PNG download."""
+        import imageio.v3 as iio
+
+        w, h = int(self.num_render_w.value), int(self.num_render_h.value)
+        self._set_status(f"⏳ rendering {w}×{h} …")
+        try:
+            rgba = client.camera.get_render(height=h, width=w, transport_format="png")
+            png = iio.imwrite("<bytes>", rgba, extension=".png")
+        except Exception as e:  # noqa: BLE001
+            log(f"render failed: {type(e).__name__}: {e}")
+            self._set_status(f"⚠ render failed: {e}")
+            return
+        tag = f"step{self.splat.step}" if self.splat is not None and self.splat.step is not None else (
+            self.splat.source.stem if self.splat is not None else "view")
+        name = f"space3dgs_{tag}_{w}x{h}.png"
+        client.send_file_download(name, png)
+        log(f"rendered {name} ({len(png) / 1e6:.1f} MB)")
+        self._set_status(f"saved `{name}`")
 
     def _on_connect(self, client) -> None:
         self._go_home(client)

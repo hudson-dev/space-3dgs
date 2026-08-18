@@ -211,6 +211,11 @@ space-3dgs-viewer outputs/iss_jem --watch               # follow training: hot-s
   lower that for a denser live view.
 - The **Appearance** dropdown folds one sequence's learned exposure gain/bias
   into the colours; the default is the mean code, as nerfstudio's viewer uses.
+- **Render** panel: set the render size (Width × Height, defaults to the
+  training image size) and click **Render image** to download a PNG of the
+  current view at that size (the aspect is honoured by cropping; detail beyond
+  the browser canvas is upsampled — the live canvas itself renders at a
+  resolution viser adapts automatically to keep the frame rate up).
 - Model upside down? **View → Reset up direction** takes the current view's up
   as the world up (tilt until it looks right, click), or pick the axis in
   **World up axis** / start with `--up=-z`.
