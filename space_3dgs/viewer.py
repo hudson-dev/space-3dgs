@@ -545,7 +545,7 @@ class Viewer:
         self.version: Optional[Version] = None
         self.splat_handle = None
         self.dataset: Optional[Dataset] = None
-        self.dataset_run: object = _UNSET  # run dir the dataset/run_cfg were read for
+        self.dataset_key: object = _UNSET  # what the dataset / run_cfg were last read for (see _dataset_key)
         self.frustums: List = []
         self.points_handle = None
         self.home: Optional[Tuple[np.ndarray, np.ndarray]] = None
@@ -668,7 +668,9 @@ class Viewer:
 
     def _check(self, force: bool) -> bool:
         path = self.source.latest()
-        if self.dataset_run is _UNSET or self.dataset_run != self.source.run_dir:  # first call / newest run changed
+        key = self._dataset_key()
+        if key != self.dataset_key:  # first call, newest run changed, or the run's files appeared/changed
+            self.dataset_key = key
             self.run_cfg = read_run_config(self.source.run_dir) if self.source.run_dir is not None else {}
             self._ensure_dataset()
         if path is None:
@@ -716,9 +718,38 @@ class Viewer:
 
     # ---- cameras / points
 
+    def _dataset_key(self) -> tuple:
+        """Changes whenever the dataset overlay must be (re)built.
+
+        A run started after the viewer writes config.yml a few seconds before
+        dataparser_transforms.json, so both files' state is part of the key and
+        the cameras get moved into the training frame as soon as it exists.
+        """
+        run_dir = self.source.run_dir
+        if run_dir is None:
+            return (None,)
+        def _stamp(name: str):
+            try:
+                st = (run_dir / name).stat()
+                return (st.st_mtime_ns, st.st_size)
+            except FileNotFoundError:
+                return None
+        return (run_dir, _stamp("config.yml"), _stamp("dataparser_transforms.json"))
+
     def _ensure_dataset(self) -> None:
         run_dir = self.source.run_dir
-        self.dataset_run = run_dir
+        # drop the previous overlay (if any) before rebuilding it
+        with self.cam_lock:
+            for h in self.frustums:
+                h.remove()
+            self.frustums = []
+            if self.points_handle is not None:
+                self.points_handle.remove()
+                self.points_handle = None
+            for cb in self.seq_checkboxes.values():
+                cb.remove()
+            self.seq_checkboxes = {}
+        self.dataset = None
         data = Path(self.args.data) if self.args.data else self.run_cfg.get("data")
         if data is None:
             if run_dir is not None:
@@ -744,9 +775,6 @@ class Viewer:
                 "which only matches the splat if the dataparser applied no transform")
         log(f"dataset {data}: {d.total:,} cameras ({len(d.names):,} drawn), sequences {d.sequence_names}")
         # per-sequence toggles
-        for cb in self.seq_checkboxes.values():
-            cb.remove()
-        self.seq_checkboxes = {}
         with self.seq_folder:
             for i, name in enumerate(d.sequence_names):
                 cb = self.server.gui.add_checkbox(name, True, hint=f"colour {PALETTE[i % len(PALETTE)]}")
