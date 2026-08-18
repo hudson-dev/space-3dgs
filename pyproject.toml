@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "space-3dgs"
+version = "0.1.0"
+description = "3D Gaussian Splatting of crewed-spacecraft interiors: prior-guided global SfM + per-sequence appearance splats, as a nerfstudio method"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Hudson Kim" }]
+dependencies = [
+  "nerfstudio>=1.1.5",   # brings gsplat (tested: nerfstudio 1.1.5, gsplat 1.4.0, torch 2.1.2+cu118)
+]
+
+[project.optional-dependencies]
+# scripts/sfm_global.py and scripts/colmap_to_transforms.py; needs Python >= 3.9,
+# so usually a second env (see README "Setup").
+sfm = ["pycolmap>=3.11", "numpy"]
+# examples/iss_jem
+iss = ["gdown", "numpy", "opencv-python-headless"]
+
+[project.entry-points."nerfstudio.method_configs"]
+space-3dgs = "space_3dgs.method_config:space_3dgs"
+
+[tool.setuptools]
+packages = ["space_3dgs"]
