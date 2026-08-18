@@ -545,6 +545,8 @@ class Viewer:
         self.splat: Optional[Splat] = None
         self.version: Optional[Version] = None
         self.splat_handle = None
+        self._splat_gen = 0
+        self._applied_appearance = MEAN_APPEARANCE  # dropdown value baked into the uploaded colours
         self.dataset: Optional[Dataset] = None
         self.dataset_key: object = _UNSET  # what the dataset / run_cfg were last read for (see _dataset_key)
         self.frustums: List = []
@@ -591,7 +593,7 @@ class Viewer:
             )
 
         self.cb_splat.on_update(lambda _: self._set_splat_visible(self.cb_splat.value))
-        self.dd_appearance.on_update(lambda _: self._push_splat())
+        self.dd_appearance.on_update(lambda _: self._on_appearance_change())
         self.btn_reload.on_click(lambda _: self.check(force=True))
         self.cb_cameras.on_update(lambda _: self._set_cameras_visible())
         self.dd_frustum.on_update(lambda _: self._draw_cameras())
@@ -621,32 +623,53 @@ class Viewer:
 
     # ---- splat
 
-    def _current_rgbs(self) -> np.ndarray:
+    def _current_rgbs(self, appearance: str) -> np.ndarray:
+        """Colours with the chosen appearance-dropdown entry folded in."""
         assert self.splat is not None
         s = self.splat
-        if s.appearance is None or self.dd_appearance.value == MEAN_APPEARANCE:
+        options = list(self.dd_appearance.options)
+        if s.appearance is None or appearance not in options or appearance == MEAN_APPEARANCE:
             gain, bias = s.appearance.gain_bias(None) if s.appearance is not None else (1.0, 0.0)
         else:
-            gain, bias = s.appearance.gain_bias(self.dd_appearance.options.index(self.dd_appearance.value) - 1)
+            gain, bias = s.appearance.gain_bias(options.index(appearance) - 1)
         if gain == 1.0 and bias == 0.0:
             return s.rgbs
         return np.clip(s.rgbs * gain + bias, 0.0, 1.0).astype(np.float32)
 
-    def _push_splat(self) -> None:
-        """(Re)upload the current splat to every client."""
+    def _push_splat(self, why: str = "uploading") -> None:
+        """(Re)upload the current splat to every client.
+
+        The new splat goes up under a fresh node name and the old one is removed
+        only afterwards, so a recolour (Appearance) or hot-swap never leaves the
+        canvas blank while ~1 M Gaussians travel over the websocket.
+        """
         with self.lock:
             if self.splat is None:
                 return
-            if self.splat_handle is not None:
-                self.splat_handle.remove()
+            n = len(self.splat)
+            if n > 200_000:
+                self._set_status(f"⏳ {why} {n:,} Gaussians — a few seconds to half a minute …")
+            self._splat_gen += 1
+            old = self.splat_handle
+            appearance = self.dd_appearance.value
             self.splat_handle = self._add_splats(
-                "/splat",
+                f"/splat/{self._splat_gen}",
                 centers=self.splat.means,
                 covariances=self.splat.covariances,
-                rgbs=self._current_rgbs(),
+                rgbs=self._current_rgbs(appearance),
                 opacities=self.splat.opacities,
                 visible=self.cb_splat.value,
             )
+            self._applied_appearance = appearance
+            if old is not None:
+                old.remove()
+            self._set_status()
+
+    def _on_appearance_change(self) -> None:
+        # viser runs GUI callbacks on a worker thread, and resetting the dropdown after a
+        # (re)load fires it too: only re-upload when the colours would actually change.
+        if self.dd_appearance.value != self._applied_appearance:
+            self._push_splat("recolouring")
 
     def _set_splat_visible(self, visible: bool) -> None:
         if self.splat_handle is not None:
@@ -705,6 +728,7 @@ class Viewer:
                 names = [f"sequence {i}" for i in range(splat.appearance.num_sequences)]
             options += names
         if list(self.dd_appearance.options) != options:
+            self._applied_appearance = MEAN_APPEARANCE  # the upload below uses it; silences the reset's callback
             self.dd_appearance.options = options
             self.dd_appearance.value = MEAN_APPEARANCE
         self.dd_appearance.visible = splat.appearance is not None
