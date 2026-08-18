@@ -10,7 +10,8 @@ only *approximate* poses (robot localization, odometry), the pipeline
 2. optimizes an **anti-aliased Gaussian splat with one appearance code per capture
    sequence** and a culling schedule that keeps pruning to the end of training,
 
-and hands you a `.ply` you can fly through in real time.
+and hands you a `.ply` you can fly through in real time — in the bundled
+viser viewer, which also follows a training run live.
 
 The included demo rebuilds the interior of the ISS Japanese Experiment Module
 (JEM / Kibo) from five public [Astrobee](https://astrobee-iss-dataset.github.io/)
@@ -21,7 +22,9 @@ poses is worth **+6.7 dB** on the identical evaluation set — the poses, not th
 splat recipe, were the ceiling.
 
 Everything is a plain [nerfstudio](https://docs.nerf.studio) method: `ns-train
-space-3dgs`, `ns-viewer`, `ns-eval`, `ns-export` all work as usual.
+space-3dgs`, `ns-viewer`, `ns-eval`, `ns-export` all work as usual, plus a
+lightweight [viser](https://viser.studio) viewer of its own
+(`space-3dgs-viewer`, see [Live viewer](#live-viewer)).
 
 ---
 
@@ -30,6 +33,7 @@ space-3dgs`, `ns-viewer`, `ns-eval`, `ns-export` all work as usual.
 - [Method](#method)
 - [Setup](#setup)
 - [Quick start on your own capture](#quick-start-on-your-own-capture)
+- [Live viewer](#live-viewer)
 - [Demo: the ISS JEM module](#demo-the-iss-jem-module)
 - [Repository layout](#repository-layout)
 - [Configuration knobs](#configuration-knobs)
@@ -173,7 +177,40 @@ ns-viewer --load-config outputs/my_scene/space-3dgs/*/config.yml
 
 `scripts/train.sh` is just `ns-train space-3dgs --data … && ns-eval && ns-export`;
 any extra arguments go straight to `ns-train`, e.g. `--max-num-iterations 30000`
-or `--vis viewer` to watch training live.
+or `--vis viewer` to watch training through nerfstudio's render loop.
+
+---
+
+## Live viewer
+
+`space-3dgs-viewer` (`space_3dgs/viewer.py`, installed by `pip install -e .`)
+renders a splat directly in the browser with viser's WebGL Gaussian-splat
+renderer — no GPU render loop, no dataset images loaded, the Gaussians are read
+straight from a checkpoint or `.ply` — and overlays the training cameras (one
+colour per capture sequence; click a frustum to jump into that view) and the
+SfM seed cloud, moved into the splat's frame with the run's
+`dataparser_transforms.json`:
+
+```bash
+space-3dgs-viewer outputs/iss_jem                       # newest run of the experiment, latest checkpoint
+space-3dgs-viewer outputs/iss_jem/export/splat.ply      # an exported splat (any 3DGS-style .ply works)
+space-3dgs-viewer outputs/iss_jem --watch               # follow training: hot-swaps each new checkpoint
+```
+
+- `--watch` polls the run and reloads whenever a new `step-*.ckpt` appears (or
+  the `.ply` is rewritten), so it can be started before `ns-train` and left
+  open. Checkpoints land every `--steps-per-save` steps (15 k by default);
+  lower that for a denser live view.
+- The **Appearance** dropdown folds one sequence's learned exposure gain/bias
+  into the colours; the default is the mean code, as nerfstudio's viewer uses.
+- Colour is the SH DC term (view-independent). For exact renders through the
+  model — full SH, antialiasing, per-view appearance — use `ns-viewer
+  --load-config …` or train with `--vis viewer`; both are viser-based too but
+  render on the GPU, and `ns-viewer` loads the whole dataset first.
+- `--max-gaussians N` (keeps the most opaque) and `--min-opacity` lighten very
+  large splats for the browser; `--data` / `--run` name the dataset and run
+  explicitly when they aren't found next to a `.ply`; `--port`, `--share` as
+  usual. `space-3dgs-viewer --help` lists the rest.
 
 ---
 
@@ -203,7 +240,8 @@ at 1280×880; ~1.2 M Gaussians; SfM registers all 5,000 frames at ~0.72 px mean
 reprojection error. Then:
 
 ```bash
-ns-viewer --load-config outputs/iss_jem/space-3dgs/*/config.yml   # fly through the module
+space-3dgs-viewer outputs/iss_jem                                  # fly through the module
+ns-viewer --load-config outputs/iss_jem/space-3dgs/*/config.yml   # …or render through the model
 ```
 
 The Astrobee release also has other JEM sequences (`iva_kibo_trans`,
@@ -222,6 +260,8 @@ space_3dgs/                  the nerfstudio method (pip install -e . registers i
   appearance_model.py          splatfacto + per-sequence achromatic gain/bias codes
   cull_strategy.py             gsplat DefaultStrategy that keeps pruning after refinement
   sequence_dataparser.py       nerfstudio dataparser + sequence_id from the filename
+  viewer.py                    `space-3dgs-viewer`: viser splat viewer for .ply / checkpoints,
+                               live-follows a run, camera + seed-cloud overlays
 scripts/
   sfm_global.py                prior-guided global SfM  ->  nerfstudio dataset (pycolmap/GLOMAP)
   colmap_to_transforms.py      COLMAP model -> transforms.json + points3d.ply (+ optional Sim3)
@@ -289,6 +329,14 @@ Training (all standard `ns-train` overrides; the interesting ones):
   (`nerfstudio-data --downscale-factor 2`) on smaller machines.
 - **`ns-eval` PSNR looks off vs the viewer**: evaluation cameras use their own
   sequence's appearance code, the viewer uses the mean code — that's expected.
+- **`space-3dgs-viewer` draws the cameras away from the splat**: it needs the
+  run's `dataparser_transforms.json` to move dataset poses into the training
+  frame; point `--run` at the run directory (and `--data` at the dataset) if
+  they weren't found next to the `.ply`. A splat from a `.ply` alone is shown
+  in whatever frame it was exported in.
+- **`space-3dgs-viewer` is sluggish in the browser** on a million-plus
+  Gaussians: `--max-gaussians 800000` or `--min-opacity 0.1` (the browser
+  sorts every splat per frame; the ISS model is ~1.2 M).
 
 ---
 

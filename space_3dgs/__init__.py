@@ -5,4 +5,6 @@ nerfstudio components:
   - SequenceAppearanceModel splatfacto + one achromatic exposure code per sequence
   - CullAfterRefineStrategy gsplat strategy that keeps pruning after densification stops
   - method_config.space_3dgs the registered `space-3dgs` training recipe
+  - viewer                  `space-3dgs-viewer`, a viser splat viewer for .ply / checkpoints
+                            that can follow a training run live
 """

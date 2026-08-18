@@ -31,4 +31,4 @@ ns-export gaussian-splat --load-config "$CFG" --output-dir "outputs/$exp/export"
 
 echo "=== [$exp] summary ==="
 python -m json.tool "outputs/$exp/eval_metrics.json" | grep -E '"(psnr|ssim|lpips)"' || true
-echo "view:   ns-viewer --load-config $CFG"
+echo "view:   space-3dgs-viewer outputs/$exp    (or: ns-viewer --load-config $CFG)"
