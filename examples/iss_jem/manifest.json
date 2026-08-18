@@ -1,0 +1,134 @@
+{
+  "sequences": {
+    "td_roll": {
+      "duration_s": 63,
+      "processed_id": "12YtBLGush0NB8EfFgspHqRTGRqIhQMAe",
+      "bag_id": "11PtHp9JXpyigzo3vsTl2FPGZqCtSfrd3"
+    },
+    "td_pitch": {
+      "duration_s": 75,
+      "processed_id": "12_1F-gbyvcqROIWecWY_P6Eep65Wo8uN",
+      "bag_id": "12-b-hHe3LSJXfcbbDskNNCEAkpCV9Xli"
+    },
+    "td_yaw": {
+      "duration_s": 50,
+      "processed_id": "12aoFP9mN2xyLCKFPYE4R_27fyKUt6_nE",
+      "bag_id": "17styveh-n3oE4vhKgKJ4VRh2dN4DzIeP"
+    },
+    "td_dock": {
+      "duration_s": 98,
+      "processed_id": "12ayYMsaGY1HKmMad_WpU31biNKrG2NjS",
+      "bag_id": "1-599sZstyT8wEhyQifOLexUPiM5b9eqG"
+    },
+    "cal_checkerboard": {
+      "duration_s": 460,
+      "processed_id": "12fwbdWxSCFIVc3Hc3LllVGj3S90L54Z5",
+      "bag_id": "1TwKRRfQOTh_KGQOnDxScBlMwepfCvNoD"
+    },
+    "cal_ARtag": {
+      "duration_s": 495,
+      "processed_id": "12f29GDfah_jJCVwoC94JvLJIul5AWnAS",
+      "bag_id": "1g4ibYtdWXZxMwXTO4zCrOEEe_13k3ARm"
+    },
+    "iva_kibo_trans": {
+      "duration_s": 229,
+      "processed_id": "13t4wNxYJ1V6yaOvPMagM2jRffDUV-TUZ",
+      "bag_id": "19Xu6CQQUFtBjOfE3OPjflPYWExR0ZQLT"
+    },
+    "iva_kibo_rot": {
+      "duration_s": 196,
+      "processed_id": "13lBOlQ4yX-AbYOg74Rla9S9WbUcTiIB0",
+      "bag_id": "1zLHlaKMyy7jnD402h33dRk2tGUBvX6kW"
+    },
+    "iva_hatch_inspection1": {
+      "duration_s": 403,
+      "processed_id": "13eHlaaxrpFldw9tkPhE1fK0P33PUAAon",
+      "bag_id": "1-QcW4j1sRNcOjJAY1wwwOFJZeYyLf5AM"
+    },
+    "iva_hatch_inspection2": {
+      "duration_s": 521,
+      "processed_id": "13f39twcT6g2GhJj1a6yjExF1mmDBK1JM",
+      "bag_id": "1-V7GGyKwOoyIyq8cXN5pgQTvyfZeZStW"
+    },
+    "iva_watch_queenbee": {
+      "duration_s": 236,
+      "processed_id": "13ul_Qzcw6GiikRYLZbkG5FdGV5LdzaPl",
+      "bag_id": "1-ctU2o1eQWtylxfSnXDr64-J967riCQ6"
+    },
+    "iva_robot_occulusion": {
+      "duration_s": 192,
+      "processed_id": "13u4TmwH8_IAkFpvmYfK0SfXCO6Q-bEAQ",
+      "bag_id": "1-ealP_UOk4_wDsWSX1pKIiX3nQ1RLstI"
+    },
+    "iva_ARtag": {
+      "duration_s": 62,
+      "processed_id": "13GjQFm5a8XsEuRN93Y1TsHM2DMlCjdu3",
+      "bag_id": "1qlhIXoufq85GrNSZal6rRxARoslrf8BT"
+    },
+    "iva_badlocal_rotation": {
+      "duration_s": 313,
+      "processed_id": "13NdhgflzTYgUmhzBgzM4QITRekzJEycR",
+      "bag_id": "1y6ns53QYdoqDzpvDapmK25rHHZZxNLr2"
+    },
+    "iva_badlocal_descend": {
+      "duration_s": 244,
+      "processed_id": "13M-hRZOFCLoVrxjCG78mRe5EfgRz4160",
+      "bag_id": "1fl-eGgxhCCOmCJy2sM3wS50hZ5FHN8Xe"
+    },
+    "ff_return_journey_forward": {
+      "duration_s": 402,
+      "processed_id": "13--Y2h4Kqld2PBoPXl3FQp7hLWUTUXBM",
+      "bag_id": "1CjhGZfr3EA5jOL6sYkdGU8_Phhgknkpg"
+    },
+    "ff_return_journey_up": {
+      "duration_s": 413,
+      "processed_id": "13Auq-nr0Ww83zFA4afLRF4byJ67Mmctt",
+      "bag_id": "16j75ipgRCOVVLmn6I6hdIJdg8NtxN5Kh"
+    },
+    "ff_return_journey_down": {
+      "duration_s": 398,
+      "processed_id": "12xHxaLDzrVv4NTMl3F-FKXPI2qYzSRYW",
+      "bag_id": "1-7Jf1nk2Y3XJr3qUjHmwBAZO3lxEHYiC"
+    },
+    "ff_return_journey_left": {
+      "duration_s": 303,
+      "processed_id": "132XpiG5LAuK-RJqXBljxB53kjk6qxSs5",
+      "bag_id": "1NGK-bGaX8luiEdJoJFfioUkm-0ZdwKMq"
+    },
+    "ff_return_journey_right": {
+      "duration_s": 328,
+      "processed_id": "133ID4Fb0owT7BDt-36h4Axv9luyoxvUQ",
+      "bag_id": "1-7sQKWQjlw5_Mnfsy2n-K_TNNpELmHYo"
+    },
+    "ff_return_journey_rot": {
+      "duration_s": 108,
+      "processed_id": "137KZaMNHYP5mnizUoJ0UXiuHnPxc8VN8",
+      "bag_id": "1oZeRh9-1diXuV9YlfSjbVj39LIhPv9x8"
+    },
+    "ff_JEM2USL_dark": {
+      "duration_s": 32,
+      "processed_id": "12gUbT4f-R_lBZ_rZAzheINOp860wzhhR",
+      "bag_id": "1-F7YipMfSSiV32vnuaHpGLdW4SXzn8Jh"
+    },
+    "ff_USL2JEM_bright": {
+      "duration_s": 92,
+      "processed_id": "12n5DqsWpkEJvY2mdhhkOp443usRVrqpb",
+      "bag_id": "1-FZLSUSpX4ZdUti-adGeOZQCm15Um7OY"
+    },
+    "ff_nod2_dark": {
+      "duration_s": 296,
+      "processed_id": "12r6LKQ8Hf6VSn8T2zLGtny8lEPoXFeDt",
+      "bag_id": "1-L-Cz-3IrJRBaV5lAykdHyzBS0PXHNFQ"
+    },
+    "ff_nod2_bright": {
+      "duration_s": 162,
+      "processed_id": "12oRelgh-99r8P2fNIq4ViZuoTlvapQRu",
+      "bag_id": "1pBLtZtRrrWt0j-s7UJUe9Gb989sde9-8"
+    }
+  },
+  "cad": {
+    "JEM": "1Uw4IJS2z0hgmO0VW28NydeckSkwRtiTD",
+    "NOD2": "1L_PvXu3un-lMX22FJ9Gi3dT6DCcIOSev",
+    "USL": "1oQNjwUwvV5fB5NF7AVbBVbrKxKZ90uRh"
+  }
+}
