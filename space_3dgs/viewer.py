@@ -48,6 +48,7 @@ SH_C0 = 0.28209479177387814
 MIN_SCALE = 1e-4  # floor on Gaussian scale (scene units) so covariances stay positive definite
 LEGACY_APPLIED_TRANSFORM = np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, -1, 0]], dtype=np.float64)
 MEAN_APPEARANCE = "mean (viewer default)"
+UP_AXES = {"+z": (0, 0, 1), "-z": (0, 0, -1), "+y": (0, 1, 0), "-y": (0, -1, 0), "+x": (1, 0, 0), "-x": (-1, 0, 0)}
 _UNSET = object()
 PALETTE = [  # one colour per capture sequence (matplotlib tab10)
     (31, 119, 180), (255, 127, 14), (44, 160, 44), (214, 39, 40), (148, 103, 189),
@@ -533,7 +534,7 @@ class Viewer:
         self.args = args
         self.source = Source(Path(args.path), Path(args.run) if args.run else None)
         self.server = viser.ViserServer(host=args.host, port=args.port, label="space-3dgs")
-        self.server.scene.set_up_direction("+z")
+        self.server.scene.set_up_direction(args.up)
         self._add_splats = getattr(self.server.scene, "add_gaussian_splats", None) or getattr(
             self.server.scene, "_add_gaussian_splats"
         )
@@ -548,6 +549,7 @@ class Viewer:
         self.frustums: List = []
         self.points_handle = None
         self.home: Optional[Tuple[np.ndarray, np.ndarray]] = None
+        self.up = np.asarray(UP_AXES[args.up], dtype=float)
         self.run_cfg: dict = {}
         self._build_gui()
         self.server.on_client_connect(self._on_connect)
@@ -578,6 +580,14 @@ class Viewer:
             self.seq_checkboxes: Dict[int, object] = {}
         with gui.add_folder("View"):
             self.btn_home = gui.add_button("Reset view")
+            self.btn_up = gui.add_button(
+                "Reset up direction",
+                hint="Make the current view's up the world up (tilt the view until it looks upright, then click)",
+            )
+            self.dd_up = gui.add_dropdown(
+                "World up axis", list(UP_AXES), self.args.up,
+                hint="Flip here if the model comes up upside down",
+            )
 
         self.cb_splat.on_update(lambda _: self._set_splat_visible(self.cb_splat.value))
         self.dd_appearance.on_update(lambda _: self._push_splat())
@@ -587,6 +597,8 @@ class Viewer:
         self.cb_points.on_update(lambda _: self._draw_points())
         self.sl_point_size.on_update(lambda _: self._draw_points())
         self.btn_home.on_click(lambda ev: self._go_home(ev.client))
+        self.btn_up.on_click(lambda ev: self._reset_up_from_view(ev.client))
+        self.dd_up.on_update(lambda _: self._set_up_axis(UP_AXES[self.dd_up.value]))
 
     def _set_status(self, extra: str = "") -> None:
         s = self.splat
@@ -832,12 +844,28 @@ class Viewer:
 
     def _go_home(self, client) -> None:
         if self.home is None:
+            client.camera.up_direction = tuple(self.up)
             return
         eye, look = self.home
         with client.atomic():
-            client.camera.up_direction = (0.0, 0.0, 1.0)
+            client.camera.up_direction = tuple(self.up)
             client.camera.position = tuple(eye)
             client.camera.look_at = tuple(look)
+
+    def _set_up_axis(self, up: np.ndarray) -> None:
+        """Set the world up direction for every connected client (and future ones)."""
+        self.up = np.asarray(up, dtype=float)
+        for client in self.server.get_clients().values():
+            client.camera.up_direction = tuple(self.up)
+
+    def _reset_up_from_view(self, client) -> None:
+        """Take the current view's up vector as the world up (as ns-viewer's button does)."""
+        import viser.transforms as vtf
+
+        # viser cameras use the OpenCV convention: +z forward, +y down, so up is -y.
+        up = vtf.SO3(np.asarray(client.camera.wxyz)) @ np.array([0.0, -1.0, 0.0])
+        self.up = np.asarray(up, dtype=float)
+        client.camera.up_direction = tuple(self.up)
 
     def _on_connect(self, client) -> None:
         self._go_home(client)
@@ -892,6 +920,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--frustum-scale", type=float, default=0.0,
                     help="frustum size in scene units (0 = 2%% of the camera bounding-box diagonal)")
     ap.add_argument("--no-cameras", action="store_true", help="start with the camera frustums hidden")
+    ap.add_argument("--up", choices=list(UP_AXES), default="+z",
+                    help="world up axis; nerfstudio's frame is +z up, write --up=-z (with '=') if the model "
+                         "comes up upside down; the viewer's View panel can flip it too")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=7007)
     ap.add_argument("--share", action="store_true", help="also request a public viser share URL")

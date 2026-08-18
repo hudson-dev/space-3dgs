@@ -203,6 +203,9 @@ space-3dgs-viewer outputs/iss_jem --watch               # follow training: hot-s
   lower that for a denser live view.
 - The **Appearance** dropdown folds one sequence's learned exposure gain/bias
   into the colours; the default is the mean code, as nerfstudio's viewer uses.
+- Model upside down? **View → Reset up direction** takes the current view's up
+  as the world up (tilt until it looks right, click), or pick the axis in
+  **World up axis** / start with `--up=-z`.
 - Colour is the SH DC term (view-independent). For exact renders through the
   model — full SH, antialiasing, per-view appearance — use `ns-viewer
   --load-config …` or train with `--vis viewer`; both are viser-based too but
