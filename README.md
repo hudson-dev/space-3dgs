@@ -114,7 +114,15 @@ conda activate nerfstudio
 git clone <this repo> space-3dgs && cd space-3dgs
 pip install -e .            # installs the `space-3dgs` nerfstudio method (entry point)
 ns-train space-3dgs --help  # should list --pipeline.model.num-sequences etc.
+MAX_JOBS=6 python -c "from gsplat.cuda._backend import _C"   # build gsplat's CUDA extension now
 ```
+
+Do that last line once, before the first `ns-train`, with the same `CUDA_HOME` /
+`CC` / `CXX` / `NVCC_PREPEND_FLAGS` you will train with (see
+[Troubleshooting](#troubleshooting)): gsplat JIT-compiles on first import, and
+inside a training run that has just cached 17 GB of images the ~18 parallel
+nvcc jobs can get the process OOM-killed. torch puts `-ccbin $CC` on the nvcc
+line, so changing those variables later triggers a full rebuild.
 
 **2. SfM env** — any Python ≥ 3.9 with pycolmap:
 
@@ -316,6 +324,13 @@ Training (all standard `ns-train` overrides; the interesting ones):
 - **nvcc rejects the host compiler** (`unsupported GNU version`): CUDA 11.8's
   nvcc needs GCC ≤ 11. Point it at one:
   `export CC=gcc-11 CXX=g++-11 NVCC_PREPEND_FLAGS="-ccbin g++-11"`.
+- **`Killed` right after "Caching / undistorting train images"**: gsplat was
+  (re)building its CUDA extension inside the training process — ninja's
+  parallel nvcc jobs on top of the image cache exhaust RAM. Warm the build
+  first, capping the parallelism, then rerun:
+  `MAX_JOBS=6 python -c "from gsplat.cuda._backend import _C"` (same env vars
+  as training; SfM outputs are untouched, `sfm_global.py` skips finished
+  stages anyway).
 - **`EnvironmentError` from tinycudann at import**: some tinycudann builds
   ship no extension for your GPU and raise an error nerfstudio doesn't catch.
   space-3dgs is gsplat-based and never needs tinycudann; put
