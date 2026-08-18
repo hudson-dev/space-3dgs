@@ -20,10 +20,6 @@ sfm = ["pycolmap>=3.11", "numpy"]
 # examples/iss_jem
 iss = ["gdown", "numpy", "opencv-python-headless"]
 
-[project.scripts]
-# live viser viewer for exported splats / training runs (space_3dgs/viewer.py)
-space-3dgs-viewer = "space_3dgs.viewer:main"
-
 [project.entry-points."nerfstudio.method_configs"]
 space-3dgs = "space_3dgs.method_config:space_3dgs"
 
