@@ -292,19 +292,6 @@ Training (all standard `ns-train` overrides; the interesting ones):
 
 ---
 
-## Citation
-
-Paper draft: *3D Gaussian Splats of the International Space Station using
-Free-Flying Space Robots*, Hudson Kim, 2026.
-
-```bibtex
-@article{kim2026space3dgs,
-  title  = {3D Gaussian Splats of the International Space Station using Free-Flying Space Robots},
-  author = {Kim, Hudson},
-  year   = {2026},
-}
-```
-
 Built on [nerfstudio](https://github.com/nerfstudio-project/nerfstudio),
 [gsplat](https://github.com/nerfstudio-project/gsplat),
 [COLMAP](https://colmap.github.io/) / [pycolmap](https://github.com/colmap/colmap)
