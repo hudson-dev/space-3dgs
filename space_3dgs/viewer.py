@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
 import sys
 import threading
@@ -561,7 +562,8 @@ class Viewer:
 
     def _build_gui(self) -> None:
         gui = self.server.gui
-        gui.configure_theme(control_layout="collapsible", show_logo=False, brand_color=(80, 140, 200))
+        gui.configure_theme(control_layout="collapsible", control_width="large", show_logo=False,
+                            brand_color=(80, 140, 200))
         self.status = gui.add_markdown("_waiting for a splat …_")
         with gui.add_folder("Splat"):
             self.cb_splat = gui.add_checkbox("Show splat", True)
@@ -723,7 +725,7 @@ class Viewer:
             self.splat = splat
         options = [MEAN_APPEARANCE]
         if splat.appearance is not None:
-            names = self.dataset.sequence_names if self.dataset is not None else []
+            names = self._sequence_labels()
             if len(names) != splat.appearance.num_sequences:
                 names = [f"sequence {i}" for i in range(splat.appearance.num_sequences)]
             options += names
@@ -801,12 +803,23 @@ class Viewer:
         log(f"dataset {data}: {d.total:,} cameras ({len(d.names):,} drawn), sequences {d.sequence_names}")
         # per-sequence toggles
         with self.seq_folder:
-            for i, name in enumerate(d.sequence_names):
-                cb = self.server.gui.add_checkbox(name, True, hint=f"colour {PALETTE[i % len(PALETTE)]}")
+            for i, (name, label) in enumerate(zip(d.sequence_names, self._sequence_labels())):
+                cb = self.server.gui.add_checkbox(
+                    label, True, hint=f"{name} — colour rgb{PALETTE[i % len(PALETTE)]}"
+                )
                 cb.on_update(lambda _: self._set_cameras_visible())
                 self.seq_checkboxes[i] = cb
         self._draw_cameras()
         self._draw_points()
+
+    def _sequence_labels(self) -> List[str]:
+        """Sequence names with their common prefix removed (ff_return_journey_up -> up)."""
+        names = self.dataset.sequence_names if self.dataset is not None else []
+        if len(names) < 2:
+            return list(names)
+        prefix = os.path.commonprefix(names)
+        cut = prefix.rfind("_") + 1  # only strip whole underscore-separated tokens
+        return [n[cut:] or n for n in names] if cut > 0 else list(names)
 
     def _frustum_scale(self) -> float:
         d = self.dataset
